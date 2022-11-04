@@ -1,0 +1,37 @@
+name: Binary Extractor
+
+on:
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Start
+        run: echo Starting...
+      - name: Get Version
+        id: get_ver
+        run: |
+          VWver=$(wget -qO- -t1 -T2 "https://api.github.com/repos/dani-garcia/vaultwarden/releases/latest" | grep "tag_name" | head -n 1 | awk -F ":" '{print $2}' | sed 's/\"//g;s/,//g;s/ //g')
+          echo "version=$VWver" >> $GITHUB_OUTPUT
+      - name: Extract
+        run: |
+          mkdir vw-image
+          cd vw-image
+          wget https://raw.githubusercontent.com/jjlin/docker-image-extract/main/docker-image-extract
+          chmod +x docker-image-extract
+          ./docker-image-extract vaultwarden/server:alpine
+          ls -ld output/{vaultwarden,web-vault}
+      - name: Zip
+        run: |
+          zip -r Vaultwarden-${{steps.get_ver.outputs.version}}.zip vw-image/output/{vaultwarden,web-vault}
+          ls -ld Vaultwarden-${{steps.get_ver.outputs.version}}.zip
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{steps.get_ver.outputs.version}}
+          name: Bin Release ${{steps.get_ver.outputs.version}}
+          files: Vaultwarden-${{steps.get_ver.outputs.version}}.zip
