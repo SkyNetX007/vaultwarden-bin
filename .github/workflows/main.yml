@@ -29,15 +29,14 @@ jobs:
 
       - name: Extract
         run: |
-          wget https://raw.githubusercontent.com/jjlin/docker-image-extract/main/docker-image-extract
-          chmod +x docker-image-extract
-          ./docker-image-extract vaultwarden/server:alpine
-          ls -ld output/{vaultwarden,web-vault}
+          docker pull --platform linux/amd64 vaultwarden/server:alpine
+          docker create --name vw vaultwarden/server:alpine
+          docker cp vw:/vaultwarden .
+          docker cp vw:/web-vault .
+          docker rm vw
 
       - name: Compress
-        run: |
-          tar -czvf ${{steps.get_ver.outputs.latest}}.tar.gz output/{vaultwarden,web-vault}
-          ls -ld ${{steps.get_ver.outputs.latest}}.tar.gz
+        run: tar -czvf vaultwarden-amd64.latest.tar.gz vaultwarden web-vault
 
       - name: Release
         uses: softprops/action-gh-release@v1
