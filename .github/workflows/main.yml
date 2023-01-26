@@ -26,8 +26,6 @@ jobs:
 
       - name: Extract
         run: |
-          mkdir vw-image
-          cd vw-image
           wget https://raw.githubusercontent.com/jjlin/docker-image-extract/main/docker-image-extract
           chmod +x docker-image-extract
           ./docker-image-extract vaultwarden/server:alpine
@@ -35,13 +33,13 @@ jobs:
 
       - name: Compress
         run: |
-          zip -r Vaultwarden-${{steps.get_ver.outputs.latest}}.zip vw-image/output/{vaultwarden,web-vault}
-          ls -ld Vaultwarden-${{steps.get_ver.outputs.latest}}.zip
+          tar -czvf ${{steps.get_ver.outputs.latest}}.tar.gz output/{vaultwarden,web-vault}
+          ls -ld ${{steps.get_ver.outputs.latest}}.tar.gz
 
       - name: Release
         uses: softprops/action-gh-release@v1
-        if: ${{ steps.get_ver.outputs.latest != steps.get_ver.outputs.current }}
+        if: ${{steps.get_ver.outputs.latest != steps.get_ver.outputs.current}}
         with:
           tag_name: ${{steps.get_ver.outputs.latest}}
-          name: Bin Release ${{steps.get_ver.outputs.latest}}
-          files: Vaultwarden-${{steps.get_ver.outputs.latest}}.zip
+          name: ${{steps.get_ver.outputs.latest}}
+          files: ${{steps.get_ver.outputs.latest}}.tar.gz
