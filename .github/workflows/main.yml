@@ -44,4 +44,4 @@ jobs:
         with:
           tag_name: ${{steps.get_ver.outputs.latest}}
           name: ${{steps.get_ver.outputs.latest}}
-          files: ${{steps.get_ver.outputs.latest}}.tar.gz
+          files: vaultwarden-amd64.latest.tar.gz
