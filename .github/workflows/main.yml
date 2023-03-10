@@ -2,7 +2,8 @@ name: Binary Extractor
 
 on:
   schedule:
-    - cron: '0 12 */7 * *'
+    - cron: "0 12 */7 * *"
+
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
@@ -10,33 +11,37 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: write
+
     steps:
       - uses: actions/checkout@v3
       - name: Start
         run: echo Starting...
+
       - name: Get Version
         id: get_ver
         run: |
-          VWver=$(wget -qO- -t1 -T2 "https://api.github.com/repos/dani-garcia/vaultwarden/releases/latest" | grep "tag_name" | head -n 1 | awk -F ":" '{print $2}' | sed 's/\"//g;s/,//g;s/ //g')
-          BinVer=$(wget -qO- -t1 -T2 "https://api.github.com/repos/SkyNetX007/vaultwarden-bin/releases/latest" | grep "tag_name" | head -n 1 | awk -F ":" '{print $2}' | sed 's/\"//g;s/,//g;s/ //g')
-          echo "version=$VWver" >> $GITHUB_OUTPUT
-          echo "bin_ver=$BinVer" >> $GITHUB_OUTPUT
+          latest=$(wget -qO- "https://api.github.com/repos/dani-garcia/vaultwarden/releases/latest" | grep "tag_name" | head -n 1 | awk -F ":" '{print $2}' | sed 's/\"//g;s/,//g;s/ //g')
+          current=$(wget -qO- "https://api.github.com/repos/${{env.GITHUB_REPOSITORY}}/releases/latest" | grep "tag_name" | head -n 1 | awk -F ":" '{print $2}' | sed 's/\"//g;s/,//g;s/ //g')
+          echo "latest=$latest" >> $GITHUB_OUTPUT
+          echo "current=$current" >> $GITHUB_OUTPUT
+
       - name: Extract
         run: |
-          mkdir vw-image
-          cd vw-image
-          wget https://raw.githubusercontent.com/jjlin/docker-image-extract/main/docker-image-extract
-          chmod +x docker-image-extract
-          ./docker-image-extract vaultwarden/server:alpine
-          ls -ld output/{vaultwarden,web-vault}
-      - name: Zip
-        run: |
-          zip -r Vaultwarden-${{steps.get_ver.outputs.version}}.zip vw-image/output/{vaultwarden,web-vault}
-          ls -ld Vaultwarden-${{steps.get_ver.outputs.version}}.zip
+          docker pull --platform linux/amd64 vaultwarden/server:alpine
+          docker create --name vw vaultwarden/server:alpine
+          docker cp vw:/vaultwarden .
+          docker cp vw:/web-vault .
+          docker rm vw
+
+      - name: Compress
+        run: tar -czvf vaultwarden-amd64.latest.tar.gz --transform 's,^,Vaultwarden/,' vaultwarden web-vault
+
       - name: Release
         uses: softprops/action-gh-release@v1
-        if: ${{ steps.get_ver.outputs.version != steps.get_ver.outputs.bin_ver }}
+        if: ${{steps.get_ver.outputs.latest != steps.get_ver.outputs.current}}
         with:
-          tag_name: ${{steps.get_ver.outputs.version}}
-          name: Bin Release ${{steps.get_ver.outputs.version}}
-          files: Vaultwarden-${{steps.get_ver.outputs.version}}.zip
+          tag_name: ${{steps.get_ver.outputs.latest}}
+          name: ${{steps.get_ver.outputs.latest}}
+          files: vaultwarden-amd64.latest.tar.gz
