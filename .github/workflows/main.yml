@@ -36,7 +36,7 @@ jobs:
           docker rm vw
 
       - name: Compress
-        run: tar -czvf vaultwarden-amd64.latest.tar.gz --transform 's,^,Vaultwarden/,' vaultwarden web-vault
+        run: tar -czvf vaultwarden-amd64-${{steps.get_ver.outputs.latest}}.tar.gz --transform 's,^,Vaultwarden/,' vaultwarden web-vault
 
       - name: Release
         uses: softprops/action-gh-release@v1
@@ -44,4 +44,4 @@ jobs:
         with:
           tag_name: ${{steps.get_ver.outputs.latest}}
           name: ${{steps.get_ver.outputs.latest}}
-          files: vaultwarden-amd64.latest.tar.gz
+          files: vaultwarden-amd64-${{steps.get_ver.outputs.latest}}.tar.gz
